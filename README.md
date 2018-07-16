@@ -1,6 +1,6 @@
 # FitbitFS - Bi-directional synchronization with Fitbit Studio
 
-Work locally with [Fitbit Studio](studio.fitbit.com) projects instead of having to use your web browser as an IDE. Synchronization is done bi-directionally, allowing you to edit your project either in the web browser or in your preferred local editor.
+Work locally with [Fitbit Studio](https://studio.fitbit.com) projects instead of having to use your web browser as an IDE. Synchronization is done bi-directionally, allowing you to edit your project either in the web browser or in your preferred local editor.
 
 ## Disclaimer
 
