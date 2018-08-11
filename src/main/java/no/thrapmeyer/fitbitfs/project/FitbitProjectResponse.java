@@ -1,10 +1,11 @@
 package no.thrapmeyer.fitbitfs.project;
 
+import java.util.ArrayList;
 import java.util.List;
 
-public class FitbitProjectList {
+public class FitbitProjectResponse {
 
-	private List<FitbitProjectRef> projects;
+	private List<FitbitProjectRef> projects = new ArrayList<>();
 
 	public List<FitbitProjectRef> getProjects() {
 		return projects;
