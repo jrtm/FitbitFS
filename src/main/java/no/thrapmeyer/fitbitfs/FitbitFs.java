@@ -4,6 +4,7 @@ import no.thrapmeyer.fitbitfs.http.FitbitHttpClient;
 import no.thrapmeyer.fitbitfs.project.FitbitProjectRef;
 import no.thrapmeyer.fitbitfs.sync.SyncConfig;
 import no.thrapmeyer.fitbitfs.sync.SyncProject;
+import no.thrapmeyer.fitbitfs.user.FitbitUser;
 import org.springframework.web.client.HttpClientErrorException;
 
 import java.io.IOException;
@@ -26,10 +27,16 @@ public class FitbitFs {
 		}
 		jwtEnv = jwtEnv.trim();
 
+
+
 		try {
 			switch (args[0]) {
 				case "projects":
 					commandProject(jwtEnv);
+					break;
+
+				case "whoami":
+					commandWhoami(jwtEnv);
 					break;
 
 				case "init":
@@ -77,6 +84,12 @@ public class FitbitFs {
 		}
 	}
 
+	private static void commandWhoami(String jwt) {
+		FitbitHttpClient client = new FitbitHttpClient(jwt);
+		FitbitUser user = client.getUser();
+		System.out.println("Logged in as " + user.getFullName() + " <" + user.getEmail() + ">");
+	}
+
 	private static String getDiffString(long a, long b) {
 		long diff = Math.abs(a - b);
 		long seconds = diff / 1000;
@@ -116,7 +129,8 @@ public class FitbitFs {
 		System.err.println("usages:\n" +
 				" $ java -jar fitbitfs.jar init <projectId>\n" +
 				" $ java -jar fitbitfs.jar sync\n" +
-				" $ java -jar fitbitfs.jar projects\n");
+				" $ java -jar fitbitfs.jar projects\n" +
+				" $ java -jar fitbitfs.jar whoami\n");
 		System.exit(1);
 	}
 }
