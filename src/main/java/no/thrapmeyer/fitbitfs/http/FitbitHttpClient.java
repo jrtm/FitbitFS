@@ -1,6 +1,8 @@
 package no.thrapmeyer.fitbitfs.http;
 
 import no.thrapmeyer.fitbitfs.project.FitbitProject;
+import no.thrapmeyer.fitbitfs.project.FitbitProjectList;
+import no.thrapmeyer.fitbitfs.project.FitbitProjectRef;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -8,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class FitbitHttpClient {
@@ -22,6 +25,13 @@ public class FitbitHttpClient {
 		this.authorization = authorization;
 
 		this.client = new RestTemplate();
+	}
+
+	public List<FitbitProjectRef> getProjects() {
+		HttpEntity entity = new HttpEntity(getHeaders("text/plain;charset=utf-8"));
+		String url = API_ROOT + "/projects";
+		ResponseEntity<FitbitProjectList> response = client.exchange(url, HttpMethod.GET, entity, FitbitProjectList.class);
+		return response.getBody().getProjects();
 	}
 
 	public FitbitProject getProject(String projectId) {
@@ -67,4 +77,5 @@ public class FitbitHttpClient {
 		String url = API_ROOT + "/projects/" + projectId + path;
 		client.exchange(url, HttpMethod.POST, entity, byte[].class);
 	}
+
 }

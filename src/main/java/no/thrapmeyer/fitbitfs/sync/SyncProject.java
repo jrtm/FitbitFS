@@ -262,4 +262,7 @@ public class SyncProject {
 		return nodes;
 	}
 
+	public Path getRootPath() {
+		return root;
+	}
 }
