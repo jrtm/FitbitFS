@@ -212,7 +212,9 @@ public class SyncProject {
 		byte[] data = client.getFile(config.getProjectId(), node.toUrl());
 		Path nodePath = node.toPath();
 		System.out.println(AnsiColor.blue("Downloading " + nodePath + " ..."));
-		writeFile(root.resolve(nodePath), data);
+		Path resolvedPath = root.resolve(nodePath);
+		mkdirs(resolvedPath.getParent());
+		writeFile(resolvedPath, data);
 		System.out.println(AnsiColor.blue("Downloaded " + nodePath));
 	}
 
@@ -246,6 +248,8 @@ public class SyncProject {
 	}
 
 	private void mkdirs(Path path) {
+		if (Files.isDirectory(path)) return; // nothing to do
+
 		try {
 			Files.createDirectories(path);
 		} catch (IOException e) {
