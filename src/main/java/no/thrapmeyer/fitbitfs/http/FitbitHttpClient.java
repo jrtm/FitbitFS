@@ -1,5 +1,7 @@
 package no.thrapmeyer.fitbitfs.http;
 
+import no.thrapmeyer.fitbitfs.fdb.FitbitHost;
+import no.thrapmeyer.fitbitfs.fdb.FitbitHostResponse;
 import no.thrapmeyer.fitbitfs.project.FitbitProject;
 import no.thrapmeyer.fitbitfs.project.FitbitProjectResponse;
 import no.thrapmeyer.fitbitfs.project.FitbitProjectRef;
@@ -68,6 +70,13 @@ public class FitbitHttpClient {
 		HttpEntity entity = new HttpEntity(data, getHeaders("text/plain;charset=utf-8"));
 		String url = API_ROOT + "/projects/" + projectId + path;
 		ResponseEntity<byte[]> response = client.exchange(url, HttpMethod.PUT, entity, byte[].class);
+	}
+
+	public List<FitbitHost> getHosts() {
+		HttpEntity entity = new HttpEntity(getHeaders("text/plain;charset=utf-8"));
+		String url = API_ROOT + "/fdb/hosts";
+		ResponseEntity<FitbitHostResponse> response = client.exchange(url, HttpMethod.GET, entity, FitbitHostResponse.class);
+		return response.getBody().getHosts();
 	}
 
 	private HttpHeaders getHeaders(String contentType) {

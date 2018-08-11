@@ -1,5 +1,6 @@
 package no.thrapmeyer.fitbitfs;
 
+import no.thrapmeyer.fitbitfs.fdb.FitbitHost;
 import no.thrapmeyer.fitbitfs.http.FitbitHttpClient;
 import no.thrapmeyer.fitbitfs.project.FitbitProjectRef;
 import no.thrapmeyer.fitbitfs.sync.SyncConfig;
@@ -48,6 +49,10 @@ public class FitbitFs {
 
 				case "sync":
 					commandSync(jwtEnv);
+					break;
+
+				case "hosts":
+					commandHosts(jwtEnv);
 					break;
 
 				default:
@@ -125,12 +130,34 @@ public class FitbitFs {
 		sm.synchronize();
 	}
 
+	private static void commandHosts(String jwt) throws Exception {
+		FitbitHttpClient client = new FitbitHttpClient(jwt);
+		List<FitbitHost> hosts = client.getHosts();
+
+		if (hosts.isEmpty()) {
+			System.out.println("No hosts found");
+			return;
+		}
+
+		System.out.println("Found " + hosts.size() + " hosts\n");
+		System.out.println("App hosts:");
+		hosts.stream()
+				.filter(FitbitHost::isAppHost)
+				.forEach(host -> System.out.println(" * " + host.getId() + " – " + host.getDisplayName() + (host.isAvailable() ? " [available]" : " [not available]")));
+
+		System.out.println("\nCompanion hosts:");
+		hosts.stream()
+				.filter(FitbitHost::isCompanionHost)
+				.forEach(host -> System.out.println(" * " + host.getId() + " – " + host.getDisplayName() + (host.isAvailable() ? " [available]" : " [not available]")));
+ 	}
+
 	private static void printUsageAndExit() {
 		System.err.println("usages:\n" +
 				" $ java -jar fitbitfs.jar init <projectId>\n" +
 				" $ java -jar fitbitfs.jar sync\n" +
 				" $ java -jar fitbitfs.jar projects\n" +
-				" $ java -jar fitbitfs.jar whoami\n");
+				" $ java -jar fitbitfs.jar whoami\n" +
+				" $ java -jar fitbitfs.jar hosts\n");
 		System.exit(1);
 	}
 }
