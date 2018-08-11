@@ -116,7 +116,7 @@ public class FitbitFs {
 		System.err.println("usages:\n" +
 				" $ java -jar fitbitfs.jar init <projectId>\n" +
 				" $ java -jar fitbitfs.jar sync\n" +
-				" $ java -jar fitbitfs.jar project\n");
+				" $ java -jar fitbitfs.jar projects\n");
 		System.exit(1);
 	}
 }
