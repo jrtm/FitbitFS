@@ -35,6 +35,9 @@ public class FitbitFs {
 
 					System.out.println("FitbitFS initialized in directory " + root + "");
 
+					sm.synchronize();
+					break;
+
 				case "sync":
 					sm.synchronize();
 					break;
