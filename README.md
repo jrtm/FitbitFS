@@ -25,15 +25,21 @@ $ cp target/fitbitfs-1.0-SNAPSHOT-jar-with-dependencies.jar ~/fitbitfs.jar
 
 ## Usage
 
-FitbitFS supports two commands: `init` and `sync`. `init` initializes the current working directory as a fitbit project, and takes two arguments, `projectId` and `jwt`. `sync` synchronizes all files between Fitbit Studio and the current working directory.
+FitbitFS supports three commands: `projects`, `init`, and `sync`. `projects` lists your Fitbit Studi projects, `init` initializes the current working directory as a fitbit project, and takes the project ID as an argument. `sync` synchronizes all files between Fitbit Studio and the current working directory.
 
 ```bash
 # Create a new folder for the project
 ~ $ mkdir my-fitbit-project
 ~ $ cd my-fitbit-project
 
-# Initialize fitbitfs for an existing Fitbit Studo project and authentication token
-my-fitbit-project $ java -jar ~/fitbitfs.jar init $projectId $jwt
+# Set up authorization
+my-fitbit-project $ export FITBITFS_JWT='<authorization token>'
+
+# List projects in Fitbit Studio
+my-fitbit-project $ java -jar ~/fitbitfs.jar projects
+
+# Initialize fitbitfs for a project
+my-fitbit-project $ java -jar ~/fitbitfs.jar init $projectId
 
 # Synchronize project with Fitbit Studio
 my-fitbit-project $ java -jar ~/fitbitfs.jar sync
