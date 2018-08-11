@@ -25,9 +25,12 @@ import java.util.Set;
 
 public class SyncProject {
 
+	private final String jwt;
+
 	private final Path root;
 
-	public SyncProject(Path root) {
+	public SyncProject(String jwt, Path root) {
+		this.jwt = jwt;
 		this.root = root;
 	}
 
@@ -88,7 +91,7 @@ public class SyncProject {
 
 		long startTime = System.currentTimeMillis();
 
-		FitbitHttpClient client = new FitbitHttpClient(config.getJwt());
+		FitbitHttpClient client = new FitbitHttpClient(jwt);
 		FitbitProject project = client.getProject(config.getProjectId());
 		System.out.println("Found project " + AnsiColor.cyan(project.getName()));
 

@@ -18,24 +18,29 @@ public class FitbitFs {
 			printUsageAndExit();
 		}
 
+		String envName = "FITBITFS_JWT";
+		String jwtEnv = System.getenv(envName);
+		if (jwtEnv == null || jwtEnv.isEmpty()) {
+			System.err.println("Required environment variable " + envName + " not set. Please set it to your Fitbit Studio authorization JWT");
+			System.exit(1);
+		}
+		jwtEnv = jwtEnv.trim();
+
 		try {
 			switch (args[0]) {
 				case "projects":
-					if (args.length != 2) {
-						printUsageAndExit();
-					}
-					commandProject(args[1]);
+					commandProject(jwtEnv);
 					break;
 
 				case "init":
-					if (args.length != 3) {
+					if (args.length != 2) {
 						printUsageAndExit();
 					}
-					commandInit(args[1], args[2]);
+					commandInit(jwtEnv, args[1]);
 					break;
 
 				case "sync":
-					commandSync();
+					commandSync(jwtEnv);
 					break;
 
 				default:
@@ -49,9 +54,9 @@ public class FitbitFs {
 
 
 
-	private static SyncProject getSyncProject() {
+	private static SyncProject getSyncProject(String jwt) {
 		Path root = Paths.get(System.getProperty("user.dir"));
-		return new SyncProject(root);
+		return new SyncProject(jwt, root);
 	}
 
 	private static void commandProject(String jwt) {
@@ -91,11 +96,10 @@ public class FitbitFs {
 		return days == 1 ? "a day" : days + " days";
 	}
 
-	private static void commandInit(String projectId, String jwt) throws IOException {
-		SyncProject sm = getSyncProject();
+	private static void commandInit(String jwt, String projectId) throws IOException {
+		SyncProject sm = getSyncProject(jwt);
 		SyncConfig config = new SyncConfig();
 		config.setProjectId(projectId);
-		config.setJwt(jwt);
 		sm.initFs(config);
 
 		System.out.println("FitbitFS initialized in directory " + sm.getRootPath() + "");
@@ -103,16 +107,16 @@ public class FitbitFs {
 		sm.synchronize();
 	}
 
-	private static void commandSync() throws IOException {
-		SyncProject sm = getSyncProject();
+	private static void commandSync(String jwt) throws IOException {
+		SyncProject sm = getSyncProject(jwt);
 		sm.synchronize();
 	}
 
 	private static void printUsageAndExit() {
 		System.err.println("usages:\n" +
-				" $ java -jar fitbitfs.jar init <projectId> <jwt>\n" +
+				" $ java -jar fitbitfs.jar init <projectId>\n" +
 				" $ java -jar fitbitfs.jar sync\n" +
-				" $ java -jar fitbitfs.jar project <jwt>");
+				" $ java -jar fitbitfs.jar project\n");
 		System.exit(1);
 	}
 }
