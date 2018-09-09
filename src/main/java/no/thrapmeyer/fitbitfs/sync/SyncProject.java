@@ -9,12 +9,10 @@ import no.thrapmeyer.fitbitfs.loader.FsSnapshotMerger;
 import no.thrapmeyer.fitbitfs.loader.ProjectToFsSnapshot;
 import no.thrapmeyer.fitbitfs.util.AnsiColor;
 import no.thrapmeyer.fitbitfs.util.Util;
-import org.springframework.web.client.HttpClientErrorException;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,6 +20,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static no.thrapmeyer.fitbitfs.util.Util.logWithStatus;
 
 public class SyncProject {
 
@@ -34,15 +34,15 @@ public class SyncProject {
 		this.root = root;
 	}
 
-	public Path getMetadataFolderPath() {
+	private Path getMetadataFolderPath() {
 		return root.resolve(".fitbitfs");
 	}
 
-	public Path getConfigPath() {
+	private Path getConfigPath() {
 		return getMetadataFolderPath().resolve("config.json");
 	}
 
-	public SyncConfig readConfig() throws IOException {
+	private SyncConfig readConfig() throws IOException {
 		Path configPath = getConfigPath();
 		if (!Files.exists(configPath)) {
 			return null;
@@ -51,11 +51,11 @@ public class SyncProject {
 	}
 
 
-	public Path getHistoryPath() {
+	private Path getHistoryPath() {
 		return getMetadataFolderPath().resolve("lastSync.json");
 	}
 
-	public SyncHistory readHistory() throws IOException {
+	private SyncHistory readHistory() throws IOException {
 		Path historyPath = getHistoryPath();
 		if (!Files.exists(historyPath)) {
 			return null;
@@ -73,7 +73,7 @@ public class SyncProject {
 		});
 	}
 
-	public void writeHistory(SyncHistory history) throws IOException {
+	private void writeHistory(SyncHistory history) throws IOException {
 		Path historyPath = getHistoryPath();
 		Util.objectMapper.writeValue(historyPath.toFile(), history);
 	}
@@ -110,9 +110,8 @@ public class SyncProject {
 
 			newNodes.parallelStream()
 					.filter(SnapshotNode::isFile)
-					.forEach(node -> {
-						downloadFile(config, client, node);
-			});
+					.forEach(node -> downloadFile(config, client, node, true)
+			);
 
 
 		} else {
@@ -138,12 +137,11 @@ public class SyncProject {
 						deleteFile(config, client, newNode);
 						break;
 					case LOCAL_ONLY:
-						System.out.println(AnsiColor.red("Deleting local file " + pathInBoth));
-						Files.delete(root.resolve(pathInBoth));
+						deleteLocalFile(pathInBoth);
 						break;
 					case BOTH:
 						if (newNode.isRemotelyModifiedAfter(oldNode)) {
-							downloadFile(config, client, newNode);
+							downloadFile(config, client, newNode, false);
 						} else if (newNode.isLocallyModifiedAfter(oldNode)) {
 							uploadFile(config, client, newNode);
 						}
@@ -157,7 +155,7 @@ public class SyncProject {
 
 				switch (newNode.getType()) {
 					case REMOTE_ONLY:
-						downloadFile(config, client, newNode);
+						downloadFile(config, client, newNode, false);
 						break;
 					case LOCAL_ONLY:
 						uploadNewDirs(config, client, newNode);
@@ -180,6 +178,12 @@ public class SyncProject {
 		System.out.println("Synchronized in " + (endTime - startTime) + "ms");
 	}
 
+	private void deleteLocalFile(Path path) {
+		logWithStatus("Delete local", path, () -> {
+			Files.delete(root.resolve(path));
+		});
+	}
+
 	private void uploadNewDirs(SyncConfig config, FitbitHttpClient client, SnapshotNode newNode) {
 		if (newNode.getParent().isRoot() || newNode.getParent().getType() != MergeType.LOCAL_ONLY) return;
 
@@ -195,36 +199,44 @@ public class SyncProject {
 		for (int i = parentsToCreate.size() - 1; i >= 0; --i) {
 			// iterate backwards to create directories in the right order
 			SnapshotNode node = parentsToCreate.get(i);
-			System.out.println(AnsiColor.green("Creating new directory " + node.toPath() + " ..."));
-			client.mkdir(config.getProjectId(), node.toUrl());
-			System.out.println(AnsiColor.green("Directory " + node.toPath() + " created"));
+			logWithStatus(AnsiColor.green("Create directory"), node.toPath(), () -> {
+				client.mkdir(config.getProjectId(), node.toUrl());
+			});
 		}
 	}
 
 	private void deleteFile(SyncConfig config, FitbitHttpClient client, SnapshotNode newNode) {
-		System.out.println(AnsiColor.red("Deleting file " + newNode.toPath() + " ..."));
-		client.deleteFile(config.getProjectId(), newNode.toUrl());
-		System.out.println(AnsiColor.red("Deleted " + newNode.toPath()));
+		logWithStatus(AnsiColor.purple("Deleting"), newNode.toPath(), () -> {
+			client.deleteFile(config.getProjectId(), newNode.toUrl());
+		});
 	}
 
-	private void downloadFile(SyncConfig config, FitbitHttpClient client, SnapshotNode node) {
+	private void downloadFile(SyncConfig config, FitbitHttpClient client, SnapshotNode node, boolean async) {
 		if (node.isRoot() || node.isDirectory()) return;
-		byte[] data = client.getFile(config.getProjectId(), node.toUrl());
 		Path nodePath = node.toPath();
-		System.out.println(AnsiColor.blue("Downloading " + nodePath + " ..."));
-		Path resolvedPath = root.resolve(nodePath);
-		mkdirs(resolvedPath.getParent());
-		writeFile(resolvedPath, data);
-		System.out.println(AnsiColor.blue("Downloaded " + nodePath));
+
+		Util.IOAction action = () -> {
+			byte[] data = client.getFile(config.getProjectId(), node.toUrl());
+			Path resolvedPath = root.resolve(nodePath);
+			mkdirs(resolvedPath.getParent());
+			writeFile(resolvedPath, data);
+		};
+
+		if (async) {
+			Util.logWithStatusAsync(AnsiColor.blue("Downloading"), nodePath, action);
+		} else {
+			logWithStatus(AnsiColor.blue("Downloading"), nodePath, action);
+		}
 	}
 
-	private void uploadFile(SyncConfig config, FitbitHttpClient client, SnapshotNode node) throws IOException {
+	private void uploadFile(SyncConfig config, FitbitHttpClient client, SnapshotNode node) {
 		if (node.isRoot() || node.isDirectory()) return;
-		byte[] data = Files.readAllBytes(root.resolve(node.toPath()));
 		Path nodePath = node.toPath();
-		System.out.println(AnsiColor.blue("Uploading " + nodePath + " ..."));
-		client.updateFile(config.getProjectId(), node.toUrl(), data);
-		System.out.println(AnsiColor.blue("Uploaded " + nodePath));
+
+		logWithStatus(AnsiColor.cyan("Uploading"), nodePath, () -> {
+			byte[] data = Files.readAllBytes(root.resolve(node.toPath()));
+			client.updateFile(config.getProjectId(), node.toUrl(), data);
+		});
 	}
 
 	private Map<Path,SnapshotNode> toPathMap(SnapshotNode node) {
@@ -272,4 +284,5 @@ public class SyncProject {
 	public Path getRootPath() {
 		return root;
 	}
+
 }

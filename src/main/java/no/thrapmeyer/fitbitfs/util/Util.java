@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import no.thrapmeyer.fitbitfs.fs.SnapshotNode;
 
+import java.io.IOException;
 import java.util.Arrays;
 
 public class Util {
@@ -41,6 +42,32 @@ public class Util {
 			System.out.println(tab + "  ]");
 		}
 		System.out.println(tab + "}");
+	}
+
+	public static void logWithStatus(String message, Object object, IOAction action) {
+		System.out.print(message + " " + String.valueOf(object) + " ... ");
+		try {
+			action.execute();
+			System.out.println(AnsiColor.green("done"));
+		} catch (IOException e) {
+			System.out.println(AnsiColor.red("failed"));
+			throw new RuntimeException(e);
+		}
+	}
+
+	public static void logWithStatusAsync(String message, Object object, IOAction action) {
+		System.out.println(message + " " + String.valueOf(object) + " ... ");
+		try {
+			action.execute();
+			System.out.println(message + " " + String.valueOf(object) + " " + AnsiColor.green("done"));
+		} catch (IOException e) {
+			System.out.println(message + " " + String.valueOf(object) + " " + AnsiColor.red("failed"));
+			throw new RuntimeException(e);
+		}
+	}
+
+	public interface IOAction {
+		void execute() throws IOException;
 	}
 
 }
